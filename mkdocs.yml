@@ -1,0 +1,37 @@
+site_name: Math for IT & Networking
+site_description: Mathematical foundations for students entering IT, networking, and cybersecurity programs. Provided by Convergent Math.
+site_url: https://applied.convergentmath.com
+theme:
+  name: material
+  font:
+    text: Roboto
+    code: Roboto Mono
+  palette:
+    - scheme: default
+      primary: blue-grey
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: blue-grey
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.highlight
+    - toc.integrate
+    - content.code.copy
+
+nav:
+  - Home: index.md
+  - Topics:
+    - Binary Arithmetic: topics/binary.md
+    - Subnetting: topics/subnetting.md
+    - Boolean Logic: topics/boolean.md
+    - Encryption & RSA: topics/rsa.md
+  - Interactive Tools: tools/index.md
