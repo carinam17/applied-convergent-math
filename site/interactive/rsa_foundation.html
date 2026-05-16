@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RSA Explorer — Convergent Math</title>
+
+  <!-- Pyodide -->
+  <script src="https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js"></script>
+
+  <style>
+    :root {
+      --blue:    #3B687E;
+      --gold:    #C9A84C;
+      --light:   #f5f7f9;
+      --border:  #dde2e7;
+      --text:    #1a2a35;
+      --muted:   #6b8090;
+      --public:  #1D6FA5;
+      --private: #993C1D;
+      --green:   #1D9E75;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--light);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--blue);
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    header h1 { font-size: 1.2rem; font-weight: 500; }
+    header p  { font-size: 0.85rem; opacity: 0.8; }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+
+    /* Loading screen */
+    #loading {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--muted);
+    }
+
+    #loading .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 1rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Sections */
+    .section {
+      background: white;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      display: none;
+    }
+
+    .section.active { display: block; }
+
+    .section-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .section h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 0.75rem;
+    }
+
+    .section p {
+      font-size: 0.9rem;
+      color: var(--muted);
+      line-height: 1.6;
+      margin-bottom: 1rem;
+    }
+
+    /* Inputs */
+    .input-row {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-end;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    input[type="number"] {
+      width: 90px;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 1rem;
+      color: var(--text);
+      background: var(--light);
+    }
+
+    input[type="number"]:focus {
+      outline: none;
+      border-color: var(--blue);
+    }
+
+    button {
+      padding: 0.5rem 1.25rem;
+      background: var(--blue);
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+
+    button:hover { opacity: 0.85; }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* Results table */
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin-top: 1rem;
+    }
+
+    .result-table th {
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+      background: var(--light);
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .result-table td {
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-family: 'Courier New', monospace;
+    }
+
+    .result-table tr:last-child td { border-bottom: none; }
+
+    /* Key badges */
+    .badge-public  { color: var(--public);  font-weight: 600; }
+    .badge-private { color: var(--private); font-weight: 600; }
+    .badge-result  { color: var(--green);   font-weight: 600; }
+
+    /* Step trace */
+    .step-trace {
+      margin-top: 1rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .step-row {
+      display: grid;
+      grid-template-columns: 40px 1fr 1fr;
+      padding: 0.6rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+      align-items: center;
+    }
+
+    .step-row:last-child { border-bottom: none; }
+    .step-row.header { background: var(--light); font-weight: 600; font-size: 0.78rem; color: var(--muted); }
+
+    .step-num {
+      width: 24px; height: 24px;
+      background: var(--blue);
+      color: white;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* Nav */
+    .nav-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+    }
+
+    .nav-row button.secondary {
+      background: white;
+      color: var(--blue);
+      border: 1px solid var(--blue);
+    }
+
+    /* Error */
+    .error {
+      color: var(--private);
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>RSA Encryption Explorer</h1>
+    <p>Convergent Math · Interactive Tool</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <p>Loading Python environment…</p>
+  </div>
+
+  <!-- Section 1: Operations Sandbox -->
+  <div class="section" id="sec-ops">
+    <div class="section-label">Section 1 of 4</div>
+    <h2>The Building Blocks</h2>
+    <p>Before we touch encryption, let's get familiar with three operations that power everything. Try changing the inputs and see what happens.</p>
+
+    <!-- Modular Arithmetic -->
+    <p><strong>Modular Arithmetic</strong> — what is the remainder when you divide?</p>
+    <div class="input-row">
+      <div class="input-group">
+        <label>Value</label>
+        <input type="number" id="mod-value" value="17" min="0">
+      </div>
+      <div class="input-group">
+        <label>Modulus</label>
+        <input type="number" id="mod-mod" value="5" min="1">
+      </div>
+      <button onclick="calcMod()">Calculate</button>
+    </div>
+    <div id="mod-result"></div>
+
+    <!-- Exponentiation -->
+    <p style="margin-top:1.25rem"><strong>Modular Exponentiation</strong> — raise to a power, then find remainder.</p>
+    <div class="input-row">
+      <div class="input-group">
+        <label>Base</label>
+        <input type="number" id="exp-base" value="2" min="1">
+      </div>
+      <div class="input-group">
+        <label>Exponent</label>
+        <input type="number" id="exp-exp" value="5" min="1">
+      </div>
+      <div class="input-group">
+        <label>Modulus</label>
+        <input type="number" id="exp-mod" value="14" min="1">
+      </div>
+      <button onclick="calcExp()">Calculate</button>
+    </div>
+    <div id="exp-result"></div>
+
+    <div class="nav-row">
+      <button onclick="goTo('sec-keygen')">Next: Generate Keys →</button>
+    </div>
+  </div>
+
+  <!-- Section 2: Key Generation -->
+  <div class="section" id="sec-keygen">
+    <div class="section-label">Section 2 of 4</div>
+    <h2>Generating Keys</h2>
+    <p>Choose two prime numbers. We'll derive your public and private keys from them — step by step.</p>
+
+    <div class="input-row">
+      <div class="input-group">
+        <label>Prime p</label>
+        <input type="number" id="kg-p" value="2" min="2">
+      </div>
+      <div class="input-group">
+        <label>Prime q</label>
+        <input type="number" id="kg-q" value="7" min="2">
+      </div>
+      <button onclick="generateKeys()">Generate Keys</button>
+    </div>
+    <div id="kg-error" class="error"></div>
+    <div id="kg-result"></div>
+
+    <div class="nav-row">
+      <button class="secondary" onclick="goTo('sec-ops')">← Back</button>
+      <button onclick="goTo('sec-encrypt')">Next: Encrypt →</button>
+    </div>
+  </div>
+
+  <!-- Section 3: Encryption -->
+  <div class="section" id="sec-encrypt">
+    <div class="section-label">Section 3 of 4</div>
+    <h2>Encrypting a Message</h2>
+    <p>Enter a message (as a number smaller than N). Watch it lock itself with your <span class="badge-public">public key</span>.</p>
+
+    <div class="input-row">
+      <div class="input-group">
+        <label>Message (integer)</label>
+        <input type="number" id="enc-msg" value="2" min="1">
+      </div>
+      <button onclick="encryptMsg()">Encrypt</button>
+    </div>
+    <div id="enc-error" class="error"></div>
+    <div id="enc-result"></div>
+
+    <div class="nav-row">
+      <button class="secondary" onclick="goTo('sec-keygen')">← Back</button>
+      <button onclick="goTo('sec-decrypt')">Next: Decrypt →</button>
+    </div>
+  </div>
+
+  <!-- Section 4: Decryption -->
+  <div class="section" id="sec-decrypt">
+    <div class="section-label">Section 4 of 4</div>
+    <h2>Decrypting a Message</h2>
+    <p>Now watch the <span class="badge-private">private key</span> reverse the process — recovering the original message.</p>
+
+    <div id="dec-result"></div>
+
+    <div class="nav-row">
+      <button class="secondary" onclick="goTo('sec-encrypt')">← Back</button>
+      <button onclick="goTo('sec-ops')" style="background:var(--green)">Start Over</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ─────────────────────────────────────────────
+let pyodide = null;
+let state = { e: null, d: null, n: null, encrypted: null };
+
+// ── Boot Pyodide ──────────────────────────────────────
+async function main() {
+  pyodide = await loadPyodide();
+  await pyodide.runPythonAsync(`
+import math
+
+def mod_calc(value, mod):
+    return value % mod
+
+def modexp_calc(base, exp, mod):
+    return pow(base, exp, mod)
+
+def is_prime(n):
+    if n < 2: return False
+    for i in range(2, int(n**0.5)+1):
+        if n % i == 0: return False
+    return True
+
+def euler_totient(n):
+    count = 0
+    for i in range(1, n+1):
+        if math.gcd(i, n) == 1:
+            count += 1
+    return count
+
+def modinv(a, m):
+    # Extended Euclidean
+    g, x, _ = extended_gcd(a, m)
+    if g != 1:
+        return None
+    return x % m
+
+def extended_gcd(a, b):
+    if a == 0:
+        return b, 0, 1
+    g, x, y = extended_gcd(b % a, a)
+    return g, y - (b // a) * x, x
+
+def generate_keys(p, q):
+    if not is_prime(p) or not is_prime(q):
+        return None, None, None, None, "Both p and q must be prime."
+    if p == q:
+        return None, None, None, None, "p and q must be different primes."
+    n = p * q
+    phi = (p - 1) * (q - 1)
+    # find e
+    e = None
+    for candidate in range(2, phi):
+        if math.gcd(candidate, phi) == 1:
+            e = candidate
+            break
+    if e is None:
+        return None, None, None, None, "Could not find valid e."
+    d = modinv(e, phi)
+    if d is None:
+        return None, None, None, None, "Could not find valid d."
+    return e, d, n, phi, ""
+
+def encrypt(msg, e, n):
+    if msg >= n:
+        return None, "Message must be smaller than N ({}).".format(n)
+    c = pow(msg, e, n)
+    return c, ""
+
+def decrypt(c, d, n):
+    m = pow(c, d, n)
+    return m
+  `);
+
+  document.getElementById('loading').style.display = 'none';
+  goTo('sec-ops');
+}
+
+// ── Navigation ────────────────────────────────────────
+function goTo(id) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  // auto-run decrypt when landing on that section
+  if (id === 'sec-decrypt' && state.encrypted !== null) decryptMsg();
+}
+
+// ── Operations ────────────────────────────────────────
+function calcMod() {
+  const v = parseInt(document.getElementById('mod-value').value);
+  const m = parseInt(document.getElementById('mod-mod').value);
+  const r = pyodide.runPython(`mod_calc(${v}, ${m})`);
+  document.getElementById('mod-result').innerHTML = `
+    <table class="result-table">
+      <tr><th>Value</th><th>Modulus</th><th>Remainder</th></tr>
+      <tr><td>${v}</td><td>${m}</td><td class="badge-result">${r}</td></tr>
+    </table>
+    <p style="margin-top:0.5rem;font-size:0.82rem;color:var(--muted)">
+      ${v} = ${Math.floor(v/m)} × ${m} + <strong>${r}</strong>
+    </p>`;
+}
+
+function calcExp() {
+  const b = parseInt(document.getElementById('exp-base').value);
+  const e = parseInt(document.getElementById('exp-exp').value);
+  const m = parseInt(document.getElementById('exp-mod').value);
+  const raw = Math.pow(b, e);
+  const r   = pyodide.runPython(`modexp_calc(${b}, ${e}, ${m})`);
+  document.getElementById('exp-result').innerHTML = `
+    <table class="result-table">
+      <tr><th>Base</th><th>Exponent</th><th>Bᴱ</th><th>Modulus</th><th>Result</th></tr>
+      <tr><td>${b}</td><td>${e}</td><td>${raw}</td><td>${m}</td><td class="badge-result">${r}</td></tr>
+    </table>
+    <p style="margin-top:0.5rem;font-size:0.82rem;color:var(--muted)">
+      ${b}^${e} = ${raw}, and ${raw} mod ${m} = <strong>${r}</strong>
+    </p>`;
+}
+
+// ── Key Generation ────────────────────────────────────
+function generateKeys() {
+  const p = parseInt(document.getElementById('kg-p').value);
+  const q = parseInt(document.getElementById('kg-q').value);
+  const result = pyodide.runPython(`
+e, d, n, phi, err = generate_keys(${p}, ${q})
+[e, d, n, phi, err]
+  `).toJs();
+
+  const [e, d, n, phi, err] = result;
+  document.getElementById('kg-error').textContent = err || '';
+
+  if (err) { document.getElementById('kg-result').innerHTML = ''; return; }
+
+  state.e = e; state.d = d; state.n = n;
+
+  document.getElementById('kg-result').innerHTML = `
+    <table class="result-table" style="margin-top:1rem">
+      <tr><th>Variable</th><th>Value</th><th>Notes</th></tr>
+      <tr><td>p × q</td><td>${p} × ${q}</td><td>your two primes</td></tr>
+      <tr><td>N</td><td>${n}</td><td>the modulus (shared)</td></tr>
+      <tr><td>φ(N) = (p−1)(q−1)</td><td>${phi}</td><td>Euler totient</td></tr>
+      <tr><td class="badge-public">e (public)</td><td class="badge-public">${e}</td><td>encryption exponent</td></tr>
+      <tr><td class="badge-private">d (private)</td><td class="badge-private">${d}</td><td>d × e mod φ(N) = 1</td></tr>
+    </table>
+    <p style="margin-top:0.75rem;font-size:0.82rem;color:var(--muted)">
+      <span class="badge-public">Public key: (${e}, ${n})</span> &nbsp;·&nbsp;
+      <span class="badge-private">Private key: (${d}, ${n})</span>
+    </p>`;
+}
+
+// ── Encryption ────────────────────────────────────────
+function encryptMsg() {
+  if (state.e === null) {
+    document.getElementById('enc-error').textContent = 'Generate keys first (Section 2).';
+    return;
+  }
+  const msg = parseInt(document.getElementById('enc-msg').value);
+  const result = pyodide.runPython(`
+c, err = encrypt(${msg}, ${state.e}, ${state.n})
+[c, err]
+  `).toJs();
+
+  const [c, err] = result;
+  document.getElementById('enc-error').textContent = err || '';
+  if (err) { document.getElementById('enc-result').innerHTML = ''; return; }
+
+  state.encrypted = c;
+  const raw = Math.pow(msg, state.e);
+
+  document.getElementById('enc-result').innerHTML = `
+    <div class="step-trace">
+      <div class="step-row header"><span>Step</span><span>Result</span><span>Notes</span></div>
+      <div class="step-row"><span class="step-num">1</span><span>message = ${msg}</span><span>start here</span></div>
+      <div class="step-row"><span class="step-num">2</span><span>${msg}^${state.e} = ${raw}</span><span>raise to public exponent e</span></div>
+      <div class="step-row"><span class="step-num">3</span><span>modulus = ${state.n}</span><span>public N</span></div>
+      <div class="step-row"><span class="step-num">4</span><span>${raw} mod ${state.n} = <span class="badge-result">${c}</span></span><span>find remainder</span></div>
+      <div class="step-row"><span class="step-num">5</span><span class="badge-result">encrypted = ${c}</span><span>send this</span></div>
+    </div>`;
+}
+
+// ── Decryption ────────────────────────────────────────
+function decryptMsg() {
+  if (state.encrypted === null || state.d === null) return;
+  const c = state.encrypted;
+  const m = pyodide.runPython(`decrypt(${c}, ${state.d}, ${state.n})`);
+  const raw = Math.pow(c, state.d);
+
+  document.getElementById('dec-result').innerHTML = `
+    <div class="step-trace">
+      <div class="step-row header"><span>Step</span><span>Result</span><span>Notes</span></div>
+      <div class="step-row"><span class="step-num">1</span><span>encrypted = ${c}</span><span>received message</span></div>
+      <div class="step-row"><span class="step-num">2</span><span>${c}^${state.d}</span><span>raise to <span class="badge-private">private exponent d</span></span></div>
+      <div class="step-row"><span class="step-num">3</span><span>modulus = ${state.n}</span><span>shared N</span></div>
+      <div class="step-row"><span class="step-num">4</span><span>find remainder mod ${state.n}</span><span></span></div>
+      <div class="step-row"><span class="step-num">5</span><span class="badge-result">decrypted = ${m}</span><span>original message recovered ✓</span></div>
+    </div>`;
+}
+
+main();
+</script>
+</body>
+</html>
