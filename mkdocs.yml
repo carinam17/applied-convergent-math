@@ -30,15 +30,12 @@ theme:
 nav:
   - Home: index.md
   - Topics:
-    - Binary Arithmetic: topics/binary.md
-    - Subnetting: topics/subnetting.md
-    - Boolean Logic: topics/boolean.md
-    - Encryption & RSA: topics/rsa.md
-  - Interactive Tools: interactive/index.md
-    - Overview: interactive/index.md
-
+      - Binary Arithmetic: topics/binary.md
+      - Subnetting: topics/subnetting.md
+      - Boolean Logic: topics/boolean.md
+      - Encryption & RSA: topics/rsa.md
+  - Interactive:
+      - Overview: interactive/index.md
 
 markdown_extensions:
   - md_in_html
-
-
