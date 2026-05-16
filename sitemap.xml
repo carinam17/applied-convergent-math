@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-         <loc>https://applied.convergentmath.com/docs/</loc>
+         <loc>https://applied.convergentmath.com/</loc>
          <lastmod>2026-05-16</lastmod>
     </url>
     <url>
-         <loc>https://applied.convergentmath.com/docs/interactive/</loc>
+         <loc>https://applied.convergentmath.com/interactive/</loc>
          <lastmod>2026-05-16</lastmod>
     </url>
     <url>
-         <loc>https://applied.convergentmath.com/docs/topics/binary/</loc>
+         <loc>https://applied.convergentmath.com/topics/binary/</loc>
          <lastmod>2026-05-16</lastmod>
     </url>
     <url>
-         <loc>https://applied.convergentmath.com/docs/topics/boolean/</loc>
+         <loc>https://applied.convergentmath.com/topics/boolean/</loc>
          <lastmod>2026-05-16</lastmod>
     </url>
     <url>
-         <loc>https://applied.convergentmath.com/docs/topics/rsa/</loc>
+         <loc>https://applied.convergentmath.com/topics/rsa/</loc>
          <lastmod>2026-05-16</lastmod>
     </url>
     <url>
-         <loc>https://applied.convergentmath.com/docs/topics/subnetting/</loc>
+         <loc>https://applied.convergentmath.com/topics/subnetting/</loc>
          <lastmod>2026-05-16</lastmod>
     </url>
 </urlset>
